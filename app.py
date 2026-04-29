@@ -279,7 +279,7 @@ def apply_theme() -> None:
             }}
 
             /* MINIMAL GRID DESIGN */
-            div[data-testid="stVerticalBlock"]:has(div.tic-tac-toe-grid) {{
+            div[data-testid="stVerticalBlock"]:has(> div.element-container:first-child div.tic-tac-toe-grid) {{
                 display: grid !important;
                 grid-template-columns: repeat(3, 1fr) !important;
                 gap: 8px !important;
@@ -294,12 +294,12 @@ def apply_theme() -> None:
             }}
             
             /* Hide the marker */
-            div[data-testid="stVerticalBlock"]:has(div.tic-tac-toe-grid) > div.element-container:first-child {{
+            div[data-testid="stVerticalBlock"]:has(> div.element-container:first-child div.tic-tac-toe-grid) > div.element-container:first-child {{
                 display: none !important;
             }}
 
             /* The cell buttons */
-            div[data-testid="stVerticalBlock"]:has(div.tic-tac-toe-grid) div[data-testid="stButton"] > button {{
+            div[data-testid="stVerticalBlock"]:has(> div.element-container:first-child div.tic-tac-toe-grid) div[data-testid="stButton"] > button {{
                 border: none !important;
                 border-radius: 0 !important;
                 box-shadow: none !important;
@@ -311,17 +311,17 @@ def apply_theme() -> None:
                 margin: 0 !important;
             }}
 
-            div[data-testid="stVerticalBlock"]:has(div.tic-tac-toe-grid) div[data-testid="stButton"] > button:hover:not(:disabled) {{
+            div[data-testid="stVerticalBlock"]:has(> div.element-container:first-child div.tic-tac-toe-grid) div[data-testid="stButton"] > button:hover:not(:disabled) {{
                 background: var(--board-hover) !important;
             }}
 
-            div[data-testid="stVerticalBlock"]:has(div.tic-tac-toe-grid) div[data-testid="stButton"] > button:disabled {{
+            div[data-testid="stVerticalBlock"]:has(> div.element-container:first-child div.tic-tac-toe-grid) div[data-testid="stButton"] > button:disabled {{
                 background: var(--surface) !important;
                 opacity: 1 !important;
             }}
             
             /* Target the huge text inside the new grid */
-            div[data-testid="stVerticalBlock"]:has(div.tic-tac-toe-grid) div[data-testid="stButton"] > button * {{
+            div[data-testid="stVerticalBlock"]:has(> div.element-container:first-child div.tic-tac-toe-grid) div[data-testid="stButton"] > button * {{
                 font-size: clamp(4rem, 15vw, 6.5rem) !important;
                 font-weight: 900 !important;
                 line-height: 1 !important;
@@ -368,7 +368,7 @@ def apply_theme() -> None:
                 }}
                 
                 /* Force the 3x3 game board to stay as a row on mobile */
-                div[data-testid="stVerticalBlock"]:has(div.tic-tac-toe-grid) {{
+                div[data-testid="stVerticalBlock"]:has(> div.element-container:first-child div.tic-tac-toe-grid) {{
                     gap: 4px !important;
                     border-width: 4px !important;
                     margin: 1rem auto !important;
