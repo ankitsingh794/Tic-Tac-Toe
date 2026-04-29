@@ -278,17 +278,51 @@ def apply_theme() -> None:
                 box-shadow: 2px 2px 0px var(--shadow) !important;
             }}
 
-            /* Board Buttons (Secondary) */
-            div[data-testid="stButton"] > button[kind="secondary"],
-            div[data-testid="stButton"] > button[data-testid="baseButton-secondary"] {{
-                min-height: 100px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
+            /* MINIMAL GRID DESIGN */
+            div[data-testid="stVerticalBlock"]:has(div.tic-tac-toe-grid) {{
+                display: grid !important;
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 8px !important;
+                background-color: var(--border) !important;
+                border: 8px var(--border-style) var(--border) !important;
+                border-radius: var(--button-radius) !important;
+                padding: 0 !important;
+                overflow: hidden !important;
+                box-shadow: 0 12px 40px var(--shadow) !important;
+                max-width: 500px !important;
+                margin: 2rem auto !important;
             }}
-            div[data-testid="stButton"] > button[kind="secondary"] *,
-            div[data-testid="stButton"] > button[data-testid="baseButton-secondary"] * {{
-                font-size: clamp(3.5rem, 10vw, 5rem) !important;
+            
+            /* Hide the marker */
+            div[data-testid="stVerticalBlock"]:has(div.tic-tac-toe-grid) > div.element-container:first-child {{
+                display: none !important;
+            }}
+
+            /* The cell buttons */
+            div[data-testid="stVerticalBlock"]:has(div.tic-tac-toe-grid) div[data-testid="stButton"] > button {{
+                border: none !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                transform: none !important;
+                background: var(--surface) !important;
+                aspect-ratio: 1 / 1 !important;
+                min-height: auto !important;
+                width: 100% !important;
+                margin: 0 !important;
+            }}
+
+            div[data-testid="stVerticalBlock"]:has(div.tic-tac-toe-grid) div[data-testid="stButton"] > button:hover:not(:disabled) {{
+                background: var(--board-hover) !important;
+            }}
+
+            div[data-testid="stVerticalBlock"]:has(div.tic-tac-toe-grid) div[data-testid="stButton"] > button:disabled {{
+                background: var(--surface) !important;
+                opacity: 1 !important;
+            }}
+            
+            /* Target the huge text inside the new grid */
+            div[data-testid="stVerticalBlock"]:has(div.tic-tac-toe-grid) div[data-testid="stButton"] > button * {{
+                font-size: clamp(4rem, 15vw, 6.5rem) !important;
                 font-weight: 900 !important;
                 line-height: 1 !important;
                 margin: 0 !important;
@@ -332,14 +366,24 @@ def apply_theme() -> None:
                     padding-right: 0.5rem !important;
                     padding-top: 1rem !important;
                 }}
-                div[data-testid="stButton"] > button[kind="secondary"] *,
-                div[data-testid="stButton"] > button[data-testid="baseButton-secondary"] * {{
-                    font-size: 3rem !important;
+                
+                /* Force the 3x3 game board to stay as a row on mobile */
+                div[data-testid="stVerticalBlock"]:has(div.tic-tac-toe-grid) {{
+                    gap: 4px !important;
+                    border-width: 4px !important;
+                    margin: 1rem auto !important;
                 }}
-                div[data-testid="stButton"] > button[kind="secondary"],
-                div[data-testid="stButton"] > button[data-testid="baseButton-secondary"] {{
-                    min-height: 80px;
+
+                /* Make the Scoreboard (4 columns) a clean 2x2 grid on mobile */
+                div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(4):last-child) {{
+                    flex-direction: row !important;
+                    flex-wrap: wrap !important;
                 }}
+                div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"]:nth-child(4):last-child) > div[data-testid="column"] {{
+                    flex: 0 0 calc(50% - 0.5rem) !important;
+                    min-width: calc(50% - 0.5rem) !important;
+                }}
+
                 h1 {{ font-size: 1.8rem !important; }}
             }}
             .stTextInput input, .stSelectbox div[data-baseweb="select"] {{
@@ -764,20 +808,20 @@ def game_screen() -> None:
         st.success(st.session_state.overall_winner)
 
     st.markdown('<br>', unsafe_allow_html=True)
-    for row in range(3):
-        columns = st.columns(3)
-        for col_index in range(3):
-            index = row * 3 + col_index
+    with st.container():
+        st.markdown('<div class="tic-tac-toe-grid"></div>', unsafe_allow_html=True)
+        for index in range(9):
             value = st.session_state.board[index]
             label = value if value else " "
             disabled = bool(value) or st.session_state.match_over or st.session_state.input_locked
-            columns[col_index].button(
+            st.button(
                 label,
                 key=f"cell_{index}",
                 disabled=disabled,
                 use_container_width=True,
                 on_click=handle_move,
                 args=(index,),
+                type="secondary"
             )
     st.markdown('<br>', unsafe_allow_html=True)
 
