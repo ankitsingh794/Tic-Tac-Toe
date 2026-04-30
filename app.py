@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-import contextlib
 import json
 from pathlib import Path
+from typing import Any, Callable, cast
 
 import streamlit as st
 from streamlit_elements import elements, mui
 
 try:
     from streamlit_lottie import st_lottie
-except ImportError:  # Fallback if dependency isn't installed yet.
+except ImportError: 
     st_lottie = None
 
 
@@ -413,14 +413,77 @@ def apply_theme() -> None:
                 background: var(--accent-soft);
                 border-color: var(--accent);
             }}
-            div[data-testid="stModal"] > div {{
+            .arena-preview {{
+                position: relative;
+                min-height: 180px;
+                border-radius: var(--button-radius);
+                border: 2px var(--border-style) var(--border);
+                overflow: hidden;
+                background-size: cover;
+                background-position: center;
+                box-shadow: 0 12px 32px var(--shadow);
+                display: flex;
+                align-items: flex-end;
+            }}
+            .arena-preview::after {{
+                content: "";
+                position: absolute;
+                inset: 0;
+                background: linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.55));
+            }}
+            .arena-preview__body {{
+                position: relative;
+                padding: 0.85rem 1rem;
+                z-index: 1;
+                color: var(--text);
+            }}
+            .arena-preview__label {{
+                font-size: 0.7rem;
+                text-transform: uppercase;
+                letter-spacing: 0.12em;
+                color: var(--muted);
+            }}
+            .arena-preview__name {{
+                font-size: 1.3rem;
+                font-weight: 700;
+            }}
+            div[data-testid="stModal"] > div,
+            div[data-testid="stDialog"] > div {{
                 background: var(--surface);
                 border: 2px var(--border-style) var(--border);
                 border-radius: var(--button-radius);
                 box-shadow: 0 16px 40px var(--shadow);
             }}
-            div[data-testid="stModal"] h2 {{
+            div[data-testid="stModal"] h2,
+            div[data-testid="stDialog"] h2 {{
                 color: var(--text);
+            }}
+            .popup-marker {{
+                display: none;
+            }}
+            body:has(.popup-marker)::before {{
+                content: "";
+                position: fixed;
+                inset: 0;
+                background: rgba(2, 6, 23, 0.55);
+                backdrop-filter: blur(2px);
+                z-index: 998;
+            }}
+            div[data-testid="stVerticalBlock"]:has(> div.element-container .popup-marker) {{
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                z-index: 999;
+                width: min(520px, 92vw);
+                background: var(--surface);
+                border: 2px var(--border-style) var(--border);
+                border-radius: var(--button-radius);
+                padding: 1.25rem 1.5rem;
+                box-shadow: 0 16px 40px var(--shadow);
+            }}
+            div[data-testid="stVerticalBlock"]:has(> div.element-container .popup-marker) > div.element-container:first-child {{
+                display: none !important;
             }}
             @keyframes fadeIn {{
                 0% {{ opacity: 0; transform: translateY(6px); }}
@@ -505,6 +568,14 @@ def load_lottie_animation() -> dict | None:
             except (OSError, json.JSONDecodeError):
                 return None
     return None
+
+
+@st.cache_data(show_spinner=False)
+def get_cached_lottie(accent_hex: str) -> dict:
+    file_data = load_lottie_animation()
+    if file_data:
+        return file_data
+    return build_pulse_lottie(hex_to_rgba(accent_hex))
 
 
 def reset_round() -> None:
@@ -617,33 +688,35 @@ def restart_match(preserve_theme: bool = False) -> None:
 def render_win_animation(message: str, anim_key: str, size: int = 160) -> None:
     theme = current_arena()
     if st_lottie:
-        lottie_data = load_lottie_animation() or build_pulse_lottie(hex_to_rgba(theme["accent"]))
+        lottie_data = get_cached_lottie(theme["accent"])
         st_lottie(
             lottie_data,
             height=size,
             width=size,
-            loop=False,
+            loop=True,
             key=anim_key,
         )
     st.markdown(f"**{message}**")
 
 
-@contextlib.contextmanager
-def modal_context(title: str):
+def show_popup(title: str, body: Callable[[], None]) -> None:
     modal_fn = getattr(st, "modal", None)
     if callable(modal_fn):
+        modal_fn = cast(Callable[[str], Any], modal_fn)
         try:
-            cm = modal_fn(title)
-            if hasattr(cm, "__enter__"):
-                with cm:
-                    yield
-                return
+            with modal_fn(title):
+                body()
+            return
         except Exception:
             pass
+
     container = st.container()
     with container:
+        st.markdown('<div class="popup-marker"></div>', unsafe_allow_html=True)
         st.markdown(f"### {title}")
-        yield
+        body()
+
+
 
 
 def render_header() -> None:
@@ -689,6 +762,22 @@ def render_scoreboard() -> None:
             )
 
 
+def render_arena_spotlight() -> None:
+    theme = current_arena()
+    preview_image = theme.get("bg_image", "")
+    st.markdown(
+        f"""
+        <div class="arena-preview" style="background-image: linear-gradient(135deg, {theme['overlay_1']}, {theme['overlay_2']}), url('{preview_image}');">
+            <div class="arena-preview__body">
+                <div class="arena-preview__label">Arena spotlight</div>
+                <div class="arena-preview__name">{st.session_state.selected_arena}</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def setup_screen() -> None:
     theme = current_arena()
     st.markdown('<div class="minimal-card">', unsafe_allow_html=True)
@@ -699,14 +788,12 @@ def setup_screen() -> None:
     with left:
         st.text_input(
             "Player X name",
-            value=st.session_state.player_x_name,
             placeholder="Enter Player X",
             label_visibility="visible",
             key="player_x_input",
         )
         st.text_input(
             "Player O name",
-            value=st.session_state.player_o_name,
             placeholder="Enter Player O",
             label_visibility="visible",
             key="player_o_input",
@@ -735,6 +822,8 @@ def setup_screen() -> None:
             """,
             unsafe_allow_html=True,
         )
+        st.markdown('<div style="height: 0.85rem;"></div>', unsafe_allow_html=True)
+        render_arena_spotlight()
 
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -763,19 +852,20 @@ def game_screen() -> None:
     )
 
     if st.session_state.show_round_modal and not st.session_state.match_over:
-        with modal_context("Round complete"):
+        def render_round_popup() -> None:
             render_win_animation(
                 st.session_state.round_flash,
                 f"round_modal_{st.session_state.round_flash_id}",
                 size=140,
             )
             st.caption("Choose an action to continue.")
-            def on_next_round():
+
+            def on_next_round() -> None:
                 st.session_state.show_round_modal = False
                 st.session_state.round_flash = ""
                 st.session_state.input_locked = False
 
-            def on_restart_round():
+            def on_restart_round() -> None:
                 restart_match(preserve_theme=True)
                 st.session_state.input_locked = False
 
@@ -783,19 +873,22 @@ def game_screen() -> None:
             action_cols[0].button("Next round", type="primary", use_container_width=True, key="next_round", on_click=on_next_round)
             action_cols[1].button("Restart match", type="primary", use_container_width=True, key="restart_round", on_click=on_restart_round)
 
+        show_popup("Round complete", render_round_popup)
+
     if st.session_state.show_match_modal and st.session_state.match_over:
-        with modal_context("Match complete"):
+        def render_match_popup() -> None:
             render_win_animation(
                 st.session_state.match_flash,
                 f"match_modal_{st.session_state.match_flash_id}",
                 size=180,
             )
             st.caption("Choose an action to continue.")
-            def on_new_match():
+
+            def on_new_match() -> None:
                 restart_match(preserve_theme=True)
                 st.session_state.input_locked = False
 
-            def on_back_lobby():
+            def on_back_lobby() -> None:
                 restart_match(preserve_theme=True)
                 st.session_state.screen = "landing"
                 st.session_state.input_locked = False
@@ -803,6 +896,8 @@ def game_screen() -> None:
             action_cols = st.columns(2)
             action_cols[0].button("New match", type="primary", use_container_width=True, key="new_match", on_click=on_new_match)
             action_cols[1].button("Back to lobby", type="primary", use_container_width=True, key="back_lobby", on_click=on_back_lobby)
+
+        show_popup("Match complete", render_match_popup)
 
     if st.session_state.match_over:
         st.success(st.session_state.overall_winner)
